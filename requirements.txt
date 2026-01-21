@@ -1,0 +1,33 @@
+# standard libraries
+qutip
+matplotlib
+numpy
+scipy
+pandas
+seaborn
+bitstring   # for creating bit pattern strings for the time tagger
+tqdm  # for progress bars (useful for long running analysis code)
+ipython  # makes life easier with different IDEs
+cmcrameri  # excellent colorplots https://zenodo.org/record/5501399
+
+# for saving yaml configuration files, while preserving comments and order
+ruamel.yaml
+
+# for serial connection to laser and other equipment
+pyserial
+
+# connect and control NI DAQ cards
+nidaqmx
+
+## pythonnet is used for the UQD time tagger connection.
+## however, the installation often fails, so please install this manually
+# pythonnet   # NOTE: be careful about mixing conda vs pip installations, seems like problems can arise
+
+# for Thorlabs powermeters, Tektronix function generators, and other VISA enabled devices
+pyvisa
+ThorlabsPM100
+
+# for the interfaces
+pyqtgraph
+PyQt5
+Pillow

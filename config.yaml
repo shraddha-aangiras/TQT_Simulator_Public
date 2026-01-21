@@ -1,0 +1,47 @@
+---
+# Laser settings
+LASER_COM_PORT: "/dev/cu.usbserial-1140"
+#LASER_COM_PORT: COM3
+LASER_POWER: 10  # mW
+
+# Thorlabs optical power meter address
+POWERMETER_PORT: USB0::0x1313::0x8078::P0038689::INSTR
+
+# Time tagger settings
+
+COINCIDENCE_WINDOW_NS: 3.0  # in ns
+
+TIMETAGGER_CHANNEL_DELAYS:  # Time tagger channel delays (ns)
+- 0.0
+- 0.0
+- 4.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+TIMETAGGER_CHANNEL_THRESHOLDS:  # Time tagger channel thresholds (V)
+- 3.0
+- 3.0
+- 3.0
+- 3.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
+- 1.0
