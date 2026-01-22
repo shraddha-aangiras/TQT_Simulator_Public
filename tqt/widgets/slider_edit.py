@@ -1,41 +1,54 @@
 from PyQt5 import Qt, QtCore
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QDoubleSpinBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QSlider, QDoubleSpinBox, QSizePolicy
 
 
 class SliderWithEdit(QWidget):
-    def __init__(self, parent, min=0, max=100, step=1, unit="mW"):
+    def __init__(self, parent, min=0, max=100, step=1, unit="mW", vertical=False):
         super(QWidget, self).__init__(parent)
 
         # SCALING FACTOR: Allows slider to handle decimals (e.g. 0.5)
         # 0.5 input * 100 scale = 50 integer steps
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.scale = 100 
 
-        layout = QVBoxLayout()
+        self.slider = QSlider(QtCore.Qt.Horizontal)
+        self.edit = QDoubleSpinBox(self)
 
-        self.slider = QSlider(QtCore.Qt.Horizontal) # Added Horizontal for better look
         self.slider.valueChanged.connect(self.slider_changed)
-        
         # Scale the inputs for the slider (int only)
         self.slider.setMinimum(int(min * self.scale))
         self.slider.setMaximum(int(max * self.scale))
         self.slider.setSingleStep(int(step * self.scale))
         self.slider.setTickInterval(int(step * self.scale))
-
-        self.edit = QDoubleSpinBox(self)
         self.edit.valueChanged.connect(self.spinbox_changed)
         self.edit.setSuffix(f" {unit}")
-
-        # Spinbox keeps the original float values
+        self.edit.setDecimals(2)
         self.edit.setMinimum(min)
         self.edit.setMaximum(max)
         self.edit.setSingleStep(step)
 
-        layout.addWidget(self.edit)
-        layout.addWidget(self.slider)
+        if vertical:
+            layout = QVBoxLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(2)
+            self.setMinimumHeight(60) 
+            self.edit.setAlignment(QtCore.Qt.AlignCenter)
+            layout.addWidget(self.edit)
+            layout.addWidget(self.slider)
+        else:
+            layout = QHBoxLayout()
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(5)
+            self.setMinimumHeight(40)
+            self.edit.setFixedWidth(70) 
+            layout.addWidget(self.slider, 1) 
+            layout.addWidget(self.edit)
 
-        layout.addStretch()
         self.setLayout(layout)
 
+    def sizeHint(self):
+        return QtCore.QSize(150, 40)
+    
     def slider_changed(self):
         # Convert Slider (Int) -> SpinBox (Float)
         value = self.slider.value() / self.scale
@@ -57,3 +70,4 @@ class SliderWithEdit(QWidget):
     def setValue(self, val):
         self.edit.setValue(float(val))
         self.slider.setValue(int(val * self.scale))
+        self.spinbox_changed()

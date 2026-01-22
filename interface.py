@@ -36,8 +36,8 @@ system = QuantumOpticalExperiment(simulation=True)
 # settings for the interface (color scheme, sizes, refresh rate, font size, etc.)
 ui_config = dict(
     # settings for the main window(s)
-    WIDTH=300,  # [pt]
-    HEIGHT=500,  # [pt]
+    WIDTH=1200,  # [pt]
+    HEIGHT=900,  # [pt]
     COLORS=["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"],
     PLOT_BACKGROUND="#E6E6EA",
     PLOT_FOREGROUND="#434A42",
@@ -99,7 +99,7 @@ class LabInterfaceApp(QMainWindow):
 
         self.setLayout(layout)
 
-        self.show()
+        self.showMaximized()
 
     def toggle_theme(self):
         app = QApplication.instance()
@@ -324,27 +324,29 @@ class ControlPanelPolarization(QFrame):
         super(QWidget, self).__init__(parent)
         self.setFrameShape(QFrame.StyledPanel)
 
-        """main_layout = QVBoxLayout(self)
+        self.setFixedWidth(650)
+
+        main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Main Layout for the Frame
+        main_layout.addWidget(QLabel("Polarization Control (Sim)"))
+
+        self.update_button = QPushButton("Update Waveplates")
+        self.update_button.setMinimumHeight(30)
+        self.update_button.clicked.connect(self.update_instrument)
+        main_layout.addWidget(self.update_button)
+        main_layout.addWidget(QLabel("")) # Spacer
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        scroll.setFrameShape(QFrame.NoFrame)"""
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.NoFrame)
 
         container = QWidget()
         layout = QVBoxLayout(container)
-
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("Polarization Control (Sim)"))
-
-        # Update button
-        self.update_button = QPushButton("Update Waveplates")
-        self.update_button.clicked.connect(self.update_instrument)
-        layout.addWidget(self.update_button)
-        
-        # Spacer
-        layout.addWidget(QLabel(""))
+        layout.setSpacing(10)
 
         # --- SECTION 1: SOURCE CONTROL (New Row) ---
         source_group = QFrame()
@@ -358,15 +360,15 @@ class ControlPanelPolarization(QFrame):
         # Source HWP Slider
         source_row = QHBoxLayout()
         source_row.addWidget(QLabel("Source HWP:"))
+        
         self.source_hwp_slider = SliderWithEdit(self, min=0, max=180, step=1, unit="°")
-        self.source_hwp_slider.setValue(0) # Default to 45 degrees
-        source_row.addWidget(self.source_hwp_slider)
+        self.source_hwp_slider.setValue(0) 
+        source_row.addWidget(self.source_hwp_slider, 1) 
         
         source_layout.addLayout(source_row)
         source_group.setLayout(source_layout)
         
         layout.addWidget(source_group)
-
 
         # --- SECTION 2: DETECTION CONTROL (Alice/Bob) ---
         self.controls = {}
@@ -387,7 +389,7 @@ class ControlPanelPolarization(QFrame):
                 party_layout.addWidget(title)
 
                 # Buttons row
-                presets_main_layout = QVBoxLayout() # Stack rows vertically
+                presets_main_layout = QVBoxLayout()
                 
                 # Row 1: Standard Bases
                 row1_layout = QHBoxLayout()
@@ -395,7 +397,6 @@ class ControlPanelPolarization(QFrame):
 
                 for label, basis_key in buttons_row1:
                     btn = QPushButton(label)
-                    #btn.setFixedWidth(40) # These are short, so width 40 looks clean
                     btn.clicked.connect(lambda checked, p=party.name, b=basis_key: self.set_preset_basis(p, b))
                     row1_layout.addWidget(btn)
                 
@@ -405,11 +406,9 @@ class ControlPanelPolarization(QFrame):
 
                 for label, basis_key in buttons_row2:
                     btn = QPushButton(label)
-                    # No fixed width here so the longer text fits
                     btn.clicked.connect(lambda checked, p=party.name, b=basis_key: self.set_preset_basis(p, b))
                     row2_layout.addWidget(btn)
 
-                # Add both rows to the main vertical layout
                 presets_main_layout.addLayout(row1_layout)
                 presets_main_layout.addLayout(row2_layout)
                 
@@ -431,25 +430,19 @@ class ControlPanelPolarization(QFrame):
                 self.controls[party.name] = {'hwp': hwp_slider, 'qwp': qwp_slider}
                 
                 party_group.setLayout(party_layout)
-                parties_layout.addWidget(party_group)
+                parties_layout.addWidget(party_group, 1)
 
             layout.addLayout(parties_layout)
 
         layout.addStretch()
-        self.setLayout(layout)
 
-        """scroll.setWidget(container)
-        main_layout.addWidget(scroll)"""
+        scroll.setWidget(container)
+        main_layout.addWidget(scroll)
 
     def set_preset_basis(self, party_name, basis):
-        """
-        Sets sliders to specific angles based on the button clicked.
-        """
         if party_name not in self.controls: return
 
-        # Need to update if wrong! (HWP, QWP)
         presets = {
-            # (HWP, QWP)
             "Z":   (0.0,  0.0), 
             "X":   (22.5, 45.0),   
             "Y":   (22.5, 0),  
@@ -460,11 +453,9 @@ class ControlPanelPolarization(QFrame):
         if basis in presets:
             h, q = presets[basis]
             
-            # Set sliders
             self.controls[party_name]['hwp'].setValue(h)
             self.controls[party_name]['qwp'].setValue(q)
             
-            # Trigger update immediately so you see the result in plots
             self.update_instrument()
             print(f"Set {party_name} to {basis} (HWP={h}, QWP={q})")
 
@@ -599,7 +590,7 @@ class ControlPanelLaser(QFrame):
 
         self.emission_checkbox = QCheckBox("Emission")
         layout.addWidget(self.emission_checkbox)
-        self.power_edit = SliderWithEdit(self, min=0, max=30, step=0.5, unit="mW")
+        self.power_edit = SliderWithEdit(self, min=0, max=30, step=0.5, unit="mW", vertical=True)
         self.power_edit.setValue(system.config["LASER_POWER"])
 
         layout.addWidget(self.power_edit)
