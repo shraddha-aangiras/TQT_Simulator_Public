@@ -131,5 +131,5 @@ tqt/control/Timetag Calibration Data1.txt
 
 old_interface.py
 code.txt
-config.yaml
+#config.yaml
 .DS_Store
