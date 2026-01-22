@@ -1,18 +1,18 @@
 #!/bin/bash
 
-# Navigate to the project root
-#cd "$(dirname "$0")/.." || exit
+# Navigate to the exact folder where THIS file is located
+cd "$(dirname "$0")" || exit
 
-# Check if venv exists
-if [ ! -d "venv" ]; then
-    echo "Error: 'venv' not found."
-    echo "Please run the setup script first to create the environment."
+# Activate venv
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+else
+    echo "Error: 'venv' folder not found here."
+    echo "Make sure the virtual environment is set up."
+    read -p "Press Enter to exit..."
     exit 1
 fi
 
-# Activate and Run
-source venv/bin/activate
-
-# Start app
+# Run the Python program
 echo "Starting application..."
-python interface.py
+python3 interface.py
