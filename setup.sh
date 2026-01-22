@@ -9,3 +9,5 @@ fi
 # 2. Activate the venv
 echo "Activating virtual environment..."
 source venv/bin/activate
+echo "Downloading requirements"
+pip install -r requirements.txt
