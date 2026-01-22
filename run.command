@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Navigate to the project root
-cd "$(dirname "$0")/.." || exit
+#cd "$(dirname "$0")/.." || exit
 
 # Check if venv exists
 if [ ! -d "venv" ]; then
