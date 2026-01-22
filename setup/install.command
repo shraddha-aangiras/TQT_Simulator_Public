@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd "$(dirname "$0")/.." || exit
+#cd "$(dirname "$0")/.." || exit
 
 # Create the venv (if it doesn't exist yet)
 if [ ! -d "venv" ]; then
