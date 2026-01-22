@@ -10,4 +10,4 @@ echo Installing requirements...
 pip install -r requirements.txt
 
 echo Setup Complete!
-cmd /k
+pause
