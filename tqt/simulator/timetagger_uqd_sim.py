@@ -338,7 +338,7 @@ class TimeTagger:
         
         Pump_State = complex_array([[1], [0]]) 
 
-        offset = np.radians(-22.5)
+        offset = 0 #np.radians(-22.5)
         effective_angle = hwp_angle + offset
 
         # Rotate the Pump Laser
