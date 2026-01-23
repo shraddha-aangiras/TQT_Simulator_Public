@@ -31,8 +31,8 @@ class PlotLogicGrid(QWidget):
         self.setLayout(layout)
 
     def update_grid(self):
-        duration_s = self.ui_config["INTEGRATION_TIME_MS"] / 1000.0
-        self.timetagger.read(duration_s)  # read the data from the time tagger once per loop
+        #duration_s = self.ui_config["INTEGRATION_TIME_MS"] / 1000.0
+        #self.timetagger.read(duration_s)  # read the data from the time tagger once per loop
         for i, plot in enumerate(self.plots):
             plot.onNewData()
 
