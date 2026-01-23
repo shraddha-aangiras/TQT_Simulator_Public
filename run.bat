@@ -1,6 +1,6 @@
 @echo off
 
-::cd /d "%~dp0.."
+cd /d "%~dp0"
 
 if not exist ".venv\Scripts\activate.bat" (
     echo Error: Virtual environment not found.
@@ -13,7 +13,7 @@ if not exist ".venv\Scripts\activate.bat" (
 call .venv\Scripts\activate
 
 echo Starting application...
-python main.py
+python interface.py
 
 echo.
 echo Application finished.
