@@ -363,7 +363,8 @@ class TimeTagger:
         epsilon = 0.03915 
         gamma = 0.06
         Id4 = np.eye(4, dtype=complex) / 4.0
-        noise_state1 = Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
+        noise_state1 = (Proj(np.kron(vec0, vec1)) + Proj(np.kron(vec1, vec0))) / 2
+        #Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
 
         self.rho = (1 - epsilon - gamma )*Proj(self.entangled_state) + epsilon * Id4 + gamma * noise_state1
 
