@@ -18,4 +18,3 @@ pyvisa
 # for interfaces
 pyqtgraph
 PyQt5
-#Pillow
