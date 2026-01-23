@@ -1,6 +1,7 @@
 @echo off
 
-::cd /d "%~dp0.."
+cd /d "%~dp0"
+
 echo Setting up Python Virtual Environment...
 
 python -m venv .venv
