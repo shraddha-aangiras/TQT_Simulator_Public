@@ -800,7 +800,9 @@ class ControlPanelLaser(QFrame):
 
         self.emission_checkbox = QCheckBox("Emission")
         layout.addWidget(self.emission_checkbox)
-        self.power_edit = SliderWithEdit(self, min=0, max=30, step=0.5, unit="mW", vertical=True)
+
+        max_pow = 100 if system.simulation else 30
+        self.power_edit = SliderWithEdit(self, min=0, max=max_pow, step=0.5, unit="mW", vertical=True)
         self.power_edit.setValue(system.config["LASER_POWER"])
 
         layout.addWidget(self.power_edit)

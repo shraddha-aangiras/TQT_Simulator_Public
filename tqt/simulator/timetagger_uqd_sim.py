@@ -90,8 +90,8 @@ class TimeTagger:
         self.set_waveplates("Alice", hwp_angle=0, qwp_angle=0)
         self.set_waveplates("Bob",   hwp_angle=0, qwp_angle=0)
 
-        self.channel_efficiencies[0] = 0.09
-        self.channel_efficiencies[1] = 0.08
+        #self.channel_efficiencies[0] = 0.09
+        #self.channel_efficiencies[1] = 0.08
 
         """## -- Remove later, test --
         PsiMinus = (np.kron(vec0, vec1) - np.kron(vec1, vec0)) / np.sqrt(2)
@@ -408,7 +408,7 @@ class TimeTagger:
         
         Pump_State = complex_array([[1], [0]]) 
 
-        offset = np.radians(-22.5)
+        offset = np.radians(-45)
         effective_angle = hwp_angle + offset
 
         # Rotate the Pump Laser

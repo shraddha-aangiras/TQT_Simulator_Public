@@ -12,8 +12,8 @@
    ```bash
    xattr -c setup/*.command && chmod +x setup/*.command
    xattr -c *.command && chmod +x *.command```
-3. Open the setup folder and double-click install.command.
-4. Go back to the main folder and double-click run.command
+3. Open the setup folder and double-click **`install.command`**.
+4. Go back to the main folder and double-click **`run.command`**.
 
 ### 3. Windows (Command Prompt)
 1. Clone the repo and navigate to directory
