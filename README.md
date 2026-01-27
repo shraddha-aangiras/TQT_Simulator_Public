@@ -1,4 +1,4 @@
-# TQT Photonic Quantum Technologies Python Control Code
+# TQT Photonic Quantum Technologies Python Simulator
 
 ## Installation & Setup
 ### 1. Windows (Clickable)
@@ -18,17 +18,21 @@
 ### 3. Windows (Command Prompt)
 1. Clone the repo and navigate to directory
 2. Run the below lines to finish setup installations
-    ```cd setup
+    ```
+    cd setup
     install.bat
-    cd ..```
+    cd ..
+    ```
 3. To run the script, use `run.bat`
 
 ### 4. macOS (Terminal)
 1. Clone the repo and navigate to directory
 2. Run the below lines to finish setup installations
-    ```cd setup
+    ```
+    cd setup
     ./install.command
-    cd ..```
+    cd ..
+    ```
 3. To run the script, use `./run.command`
 
 ## Main files
