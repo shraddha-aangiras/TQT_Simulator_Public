@@ -6,6 +6,9 @@ from itertools import product
 from collections import Counter
 import itertools
 
+BIN_RESOLUTION_NS = 0.15625
+JITTER_SIGMA_NS = 1.0
+
 def complex_array(arr):
     return np.array(arr, dtype=complex)
 
@@ -134,11 +137,7 @@ class TimeTagger:
     def read(self, time_s=1.0):
         # print("read (optimized with accidentals):")
         if time_s is None: time_s = 1.0
-        
-        # --- FIX: Use a temporary variable instead of clearing live memory ---
-        # self._simulation_memory.clear() <--- REMOVED
         temp_memory = Counter() 
-        # -------------------------------------------------------------------
 
         base_rate = 0.0
         if self.laser:
@@ -268,17 +267,42 @@ class TimeTagger:
         self._simulation_memory = temp_memory
 
     def get_count_data(self, channels: list):
-        if not channels:
-            return self._last_duration, 0, 0.0
+        """
+        Returns (time, count, rate).
+        Applies the Overlap Function to simulate delay mismatch.
+        """
         req_set = set(channels)
         total_counts = 0
         
+        # 1. Calculate Overlap Factor
+        # If we are looking at >1 channel, we check the delay mismatch
+        overlap_factor = 1.0
+        
+        if len(channels) == 2:
+            # User Formula: Exp[-(dA - dB)^2 / (2 * sigma^2)]
+            chA, chB = channels[0], channels[1]
+            
+            # Map channel 1-16 to index 0-15
+            dA = self.delays[chA - 1] if 1 <= chA <= 16 else 0
+            dB = self.delays[chB - 1] if 1 <= chB <= 16 else 0
+            
+            # Gaussian Overlap
+            sigma = JITTER_SIGMA_NS
+            delta = dA - dB
+            overlap_factor = np.exp(-(delta**2) / (2 * sigma**2))
+            
+            # If the mismatch is huge, count is effectively zero
+            if overlap_factor < 1e-5: overlap_factor = 0
+
+        # 2. Sum counts matching the pattern
         for pattern, count in self._simulation_memory.items():
             if req_set.issubset(pattern):
                 total_counts += count
 
+        # 3. Apply Factor
+        total_counts = int(total_counts * overlap_factor)
+
         rate = total_counts / self._last_duration if self._last_duration > 0 else 0
-        print(channels, total_counts)
         return self._last_duration, total_counts, rate
         
 
@@ -302,12 +326,58 @@ class TimeTagger:
         print(f"[SIM] Added Party '{name}' on Channels {ch_0}/{ch_1}")
 
     def save_tags(self, io=None, filename="tags", time=1.0, convert=True):
-        print(f"[SIM] Saving raw time tags not fully supported in Poisson mode (Logic only)")
+        """
+        Generates raw time tags with Gaussian jitter to create a realistic Histogram (rn only works for Alice & Bob)
+        """
+        print(f"[SIM] Generating {time}s of raw tags with Jitter={JITTER_SIGMA_NS}ns...")
+        
+        base_rate = 0.0
+        if self.laser and self.laser.is_emission_on:
+             base_rate = self.laser.power * 100000.0 # Match the logic mode scaling
+
+        if base_rate == 0:
+            print("[SIM] Laser off, saving empty file.")
+            self._write_tags_file(io, filename, [])
+            return
+
+        num_events = int(base_rate * time)
+
+        intervals = np.random.exponential(1/base_rate, num_events)
+        emission_times_s = np.cumsum(intervals)
+
+        tags = []
+
+        delay_A_ns = self.delays[0] # Ch1
+        jitter_A_ns = np.random.normal(0, JITTER_SIGMA_NS, num_events)
+        times_A_ns = (emission_times_s * 1e9) + delay_A_ns + jitter_A_ns
+
+        delay_B_ns = self.delays[1] # Ch2
+        jitter_B_ns = np.random.normal(0, JITTER_SIGMA_NS, num_events)
+        times_B_ns = (emission_times_s * 1e9) + delay_B_ns + jitter_B_ns
+
+        bins_A = (times_A_ns / BIN_RESOLUTION_NS).astype(np.int64)
+        bins_B = (times_B_ns / BIN_RESOLUTION_NS).astype(np.int64)
+        max_rows = 500000 
+        
+        for i in range(min(num_events, max_rows)):
+            tags.append([1, bins_A[i]])
+            tags.append([2, bins_B[i]])
+            
+        tags.sort(key=lambda x: x[1])
+        self._write_tags_file(io, filename, tags)
+    
+    def _write_tags_file(self, io, filename, tags_list):
         if io:
             file_path = io.path.joinpath(f"{filename}.txt")
             file_path.parent.mkdir(parents=True, exist_ok=True)
+            
             with open(file_path, "w") as f:
-                f.write("Virtual Time Tags (Poisson Mode - Dummy File)\n")
+                # Header required by np.loadtxt
+                f.write("Channel\tTime\n") 
+                for row in tags_list:
+                    f.write(f"{int(row[0])}\t{int(row[1])}\n")
+            
+            print(f"[SIM] Saved {len(tags_list)} tags to {file_path}")
 
     def set_waveplates(self, party_name, hwp_angle, qwp_angle):
         """
@@ -338,7 +408,7 @@ class TimeTagger:
         
         Pump_State = complex_array([[1], [0]]) 
 
-        offset = 0 #np.radians(-22.5)
+        offset = np.radians(-22.5)
         effective_angle = hwp_angle + offset
 
         # Rotate the Pump Laser
@@ -363,8 +433,7 @@ class TimeTagger:
         epsilon = 0.03915 
         gamma = 0.06
         Id4 = np.eye(4, dtype=complex) / 4.0
-        noise_state1 = (Proj(np.kron(vec0, vec1)) + Proj(np.kron(vec1, vec0))) / 2
-        #Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
+        noise_state1 = Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
 
         self.rho = (1 - epsilon - gamma )*Proj(self.entangled_state) + epsilon * Id4 + gamma * noise_state1
 
