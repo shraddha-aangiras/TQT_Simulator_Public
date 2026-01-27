@@ -274,7 +274,6 @@ class TimeTagger:
         req_set = set(channels)
         total_counts = 0
         
-        # 1. Calculate Overlap Factor
         # If we are looking at >1 channel, we check the delay mismatch
         overlap_factor = 1.0
         
@@ -294,12 +293,10 @@ class TimeTagger:
             # If the mismatch is huge, count is effectively zero
             if overlap_factor < 1e-5: overlap_factor = 0
 
-        # 2. Sum counts matching the pattern
         for pattern, count in self._simulation_memory.items():
             if req_set.issubset(pattern):
                 total_counts += count
 
-        # 3. Apply Factor
         total_counts = int(total_counts * overlap_factor)
 
         rate = total_counts / self._last_duration if self._last_duration > 0 else 0
@@ -327,42 +324,83 @@ class TimeTagger:
 
     def save_tags(self, io=None, filename="tags", time=1.0, convert=True):
         """
-        Generates raw time tags with Gaussian jitter to create a realistic Histogram (rn only works for Alice & Bob)
+        Generates raw time tags that respect the CURRENT QUANTUM STATE.
         """
-        print(f"[SIM] Generating {time}s of raw tags with Jitter={JITTER_SIGMA_NS}ns...")
+        print(f"[SIM] Generating {time}s of physics-based tags...")
         
         base_rate = 0.0
         if self.laser and self.laser.is_emission_on:
-             base_rate = self.laser.power * 100000.0 # Match the logic mode scaling
+             base_rate = self.laser.power * self.laser_rate
 
         if base_rate == 0:
-            print("[SIM] Laser off, saving empty file.")
             self._write_tags_file(io, filename, [])
             return
 
         num_events = int(base_rate * time)
+        
+        probs_map = {}
+        outcomes = list(product([0, 1], repeat=len(self.parties))) # 0=Ch_A, 1=Ch_B
+        
+        total_prob = 0
+        for outcome in outcomes:
+            op_list = []
+            channels = []
+            for i, result_idx in enumerate(outcome):
+                p = self.parties[i]
+                op_list.append(p.ops[result_idx])
+                channels.append(p.channels[result_idx]) 
+            
+            full_op = op_list[0]
+            for op in op_list[1:]:
+                full_op = np.kron(full_op, op)
+                
+            p = np.real(np.trace(self.rho @ full_op))
+
+            eff = 1.0
+            for ch in channels:
+                eff *= self.channel_efficiencies[ch-1] if 1<=ch<=16 else 0
+                
+            probs_map[tuple(channels)] = p * eff
+            total_prob += p * eff
+
+        tags = []
 
         intervals = np.random.exponential(1/base_rate, num_events)
         emission_times_s = np.cumsum(intervals)
 
-        tags = []
-
-        delay_A_ns = self.delays[0] # Ch1
-        jitter_A_ns = np.random.normal(0, JITTER_SIGMA_NS, num_events)
-        times_A_ns = (emission_times_s * 1e9) + delay_A_ns + jitter_A_ns
-
-        delay_B_ns = self.delays[1] # Ch2
-        jitter_B_ns = np.random.normal(0, JITTER_SIGMA_NS, num_events)
-        times_B_ns = (emission_times_s * 1e9) + delay_B_ns + jitter_B_ns
-
-        bins_A = (times_A_ns / BIN_RESOLUTION_NS).astype(np.int64)
-        bins_B = (times_B_ns / BIN_RESOLUTION_NS).astype(np.int64)
-        max_rows = 500000 
+        pair_keys = list(probs_map.keys())
+        pair_probs = list(probs_map.values())
         
-        for i in range(min(num_events, max_rows)):
-            tags.append([1, bins_A[i]])
-            tags.append([2, bins_B[i]])
+        sum_p = sum(pair_probs)
+        prob_no_click = 1.0 - sum_p
+        if prob_no_click < 0: prob_no_click = 0
+        
+        distribution = np.random.multinomial(num_events, pair_probs + [prob_no_click])
+        
+        current_event_idx = 0
+        for i, count in enumerate(distribution[:-1]): 
+            if count == 0: continue
             
+            active_channels = pair_keys[i] 
+            
+            start_idx = current_event_idx
+            end_idx = current_event_idx + count
+            if end_idx > len(emission_times_s): break
+            
+            these_times = emission_times_s[start_idx:end_idx]
+            current_event_idx += count
+            
+            for ch in active_channels:
+                delay = self.delays[ch-1] if 1<=ch<=16 else 0
+                jitter = np.random.normal(0, JITTER_SIGMA_NS, count)
+        
+                times_ns = (these_times * 1e9) + delay + jitter
+                bins = (times_ns / BIN_RESOLUTION_NS).astype(np.int64)
+                
+                for b in bins:
+                    tags.append([ch, b])
+                    
+        # Sort and Save
         tags.sort(key=lambda x: x[1])
         self._write_tags_file(io, filename, tags)
     
@@ -372,7 +410,6 @@ class TimeTagger:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             
             with open(file_path, "w") as f:
-                # Header required by np.loadtxt
                 f.write("Channel\tTime\n") 
                 for row in tags_list:
                     f.write(f"{int(row[0])}\t{int(row[1])}\n")
@@ -422,7 +459,6 @@ class TimeTagger:
         # |10> = Alice V, Bob H
         State_VH = np.kron(vec1, vec0)
         
-        # If HWP = -22.5 deg, beta will be negative, giving the minus sign.
         self.entangled_state = (alpha * State_HV) + (beta * State_VH)
          
         # Normalize

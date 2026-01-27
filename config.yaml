@@ -12,9 +12,9 @@ POWERMETER_PORT: USB0::0x1313::0x8078::P0038689::INSTR
 COINCIDENCE_WINDOW_NS: 3.0  # in ns
 
 TIMETAGGER_CHANNEL_DELAYS:  # Time tagger channel delays (ns)
-- 10.0
+- 1.5
 - 0.0
-- 4.0
+- 0.0
 - 0.0
 - 0.0
 - 0.0

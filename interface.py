@@ -360,13 +360,16 @@ class CountView(MeasurementBase):
         main_layout.setContentsMargins(10, 20, 10, 20)
 
         # Add the inherited controls layout
-        main_layout.addLayout(self.layout_controls)
+        main_layout.addLayout(self.layout_controls, 0)
 
         # Visual Separator
         line = QFrame()
         line.setFrameShape(QFrame.VLine)
         line.setFrameShadow(QFrame.Sunken)
         main_layout.addWidget(line)
+
+        right_side_layout = QVBoxLayout()
+        counts_row_layout = QHBoxLayout()
 
         # --- Table Logic (Singles) ---
         singles_layout = QGridLayout()
@@ -394,13 +397,13 @@ class CountView(MeasurementBase):
             self.single_value_labels[tuple(channels)] = lbl_val
             row += 1
         singles_layout.setRowStretch(row, 1)
-        main_layout.addLayout(singles_layout)
+        counts_row_layout.addLayout(singles_layout)
 
         # Separator 2
         line2 = QFrame()
         line2.setFrameShape(QFrame.VLine)
         line2.setFrameShadow(QFrame.Sunken)
-        main_layout.addWidget(line2)
+        counts_row_layout.addWidget(line2)
 
         # --- Table Logic (Coincidences) ---
         coinc_layout = QGridLayout()
@@ -425,8 +428,96 @@ class CountView(MeasurementBase):
             self.coinc_value_labels[tuple(channels)] = lbl_val
             row += 1
         coinc_layout.setRowStretch(row, 1)
-        main_layout.addLayout(coinc_layout)
+        counts_row_layout.addLayout(coinc_layout)
+        right_side_layout.addLayout(counts_row_layout)
 
+        #self.setLayout(main_layout)
+
+        line_horiz = QFrame()
+        line_horiz.setFrameShape(QFrame.HLine)
+        line_horiz.setFrameShadow(QFrame.Sunken)
+        right_side_layout.addWidget(line_horiz)
+
+        expectation_layout = QHBoxLayout()
+        e_singles_layout = QGridLayout()
+        e_singles_layout.setSpacing(10)
+        h3 = QLabel("Expectation Value (Singles)")
+        h3.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 14pt;")
+        e_singles_layout.addWidget(h3, 0, 0, 1, 2, QtCore.Qt.AlignCenter)
+
+        self.exp_singles_map = {
+            "E(Alice)": ([1], [3]), 
+            "E(Bob)":   ([2], [4])
+        }
+        self.exp_single_widgets = {}
+
+        row = 1
+        for name, (pos, neg) in self.exp_singles_map.items():
+            lbl_name = QLabel(name)
+            lbl_val = QLabel("0")
+            lbl_val.setFont(val_font)
+            lbl_val.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+            e_singles_layout.addWidget(lbl_name, row, 0)
+            e_singles_layout.addWidget(lbl_val, row, 1)
+            self.exp_single_widgets[(tuple(pos), tuple(neg))] = lbl_val
+            row += 1
+
+        expectation_layout.addLayout(e_singles_layout, 1)
+
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.VLine)
+        line3.setFrameShadow(QFrame.Sunken)
+        expectation_layout.addWidget(line3)
+
+        e_couples_layout = QGridLayout()
+        e_couples_layout.setSpacing(10)
+        h4 = QLabel("Couples expectation values")
+        h4.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 14pt;")
+        e_couples_layout.addWidget(h4, 0, 0, 1, 2, QtCore.Qt.AlignCenter)
+
+        self.exp_couples_map = {
+            "E(A, B)": {
+                "plus":  [[1, 2], [3, 4]], 
+                "minus": [[1, 4], [3, 2]] 
+            }
+        }
+        self.exp_couples_widgets = {}
+
+        row = 1
+        for name, groups in self.exp_couples_map.items():
+            lbl_name = QLabel(name)
+            lbl_val = QLabel("0.0000")
+            lbl_val.setFont(val_font)
+            lbl_val.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+            
+            e_couples_layout.addWidget(lbl_name, row, 0)
+            e_couples_layout.addWidget(lbl_val, row, 1)
+            
+            self.exp_couples_widgets[name] = lbl_val
+            row += 1
+
+        expectation_layout.addLayout(e_couples_layout, 1)
+        right_side_layout.addLayout(expectation_layout)
+        #right_side_layout.addStretch()
+
+
+
+        """analysis_layout = QVBoxLayout()
+        h3 = QLabel("Expectation Values")
+        h3.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 14pt;")
+        analysis_layout.addWidget(h3, 0, QtCore.Qt.AlignCenter)
+
+        self.e_label = QLabel("E = 0.0000")
+        self.e_label.setFont(val_font)
+        self.e_label.setAlignment(QtCore.Qt.AlignCenter)
+        analysis_layout.addWidget(self.e_label)
+
+        analysis_layout.addWidget(QLabel("(N_corr - N_anti) / Total"), 0, QtCore.Qt.AlignCenter)
+        
+        right_side_layout.addLayout(analysis_layout)"""
+
+        # Add right side to main
+        main_layout.addLayout(right_side_layout, 1)
         self.setLayout(main_layout)
 
     def update_view(self):
@@ -439,6 +530,35 @@ class CountView(MeasurementBase):
         for channels, label_widget in self.coinc_value_labels.items():
             _, count, _ = system.timetagger.get_count_data(list(channels))
             label_widget.setText(f"{count:,}")
+        
+        for (pos_chans, neg_chans), label_widget in self.exp_single_widgets.items():
+            _, count_pos, _ = system.timetagger.get_count_data(list(pos_chans))
+            _, count_neg, _ = system.timetagger.get_count_data(list(neg_chans))
+            total = count_pos + count_neg
+            if total > 0:
+                expectation_val = (count_pos - count_neg) / total
+                label_widget.setText(f"{expectation_val:.3f}")
+            else:
+                label_widget.setText("0.0000")
+
+        for name, label_widget in self.exp_couples_widgets.items():
+            groups = self.exp_couples_map[name]
+            n_plus = 0
+            for chans in groups["plus"]:
+                _, c, _ = system.timetagger.get_count_data(list(chans))
+                n_plus += c
+            n_minus = 0
+            for chans in groups["minus"]:
+                _, c, _ = system.timetagger.get_count_data(list(chans))
+                n_minus += c
+
+            total = n_plus + n_minus
+            
+            if total > 0:
+                e_val = (n_plus - n_minus) / total
+                label_widget.setText(f"{e_val:.4f}")
+            else:
+                label_widget.setText("0.0000")
 
 class ControlPanelTimeTag(QFrame):
     def __init__(self, parent):
