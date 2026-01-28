@@ -113,7 +113,7 @@ class QuantumOpticalExperiment:
     def set_timetagger_window(self, window):
         print(f"Setting new time tagger window to: {window}")
         self.timetagger.set_window_width(window=window)
-        self.config["TIMETAGGER_CHANNEL_DELAYS"] = window
+        self.config["COINCIDENCE_WINDOW_NS"] = window
         self.save_config()
 
     def set_timetagger_delays(self, delays):

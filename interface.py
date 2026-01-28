@@ -603,7 +603,8 @@ class ControlPanelTimeTag(QFrame):
 
         scroll.layout.addWidget(QLabel(""), 0, 0)
         scroll.layout.addWidget(QLabel("Delay (ns)"), 0, 1)
-        scroll.layout.addWidget(QLabel("Threshold (V)"), 0, 2)
+        if not system.simulation:
+            scroll.layout.addWidget(QLabel("Threshold (V)"), 0, 2)
         self.delay_spinboxes = []
         self.threshold_spinboxes = []
         for i in range(16):
@@ -616,14 +617,15 @@ class ControlPanelTimeTag(QFrame):
             self.delay_spinboxes.append(sb)
             scroll.layout.addWidget(sb, i + 1, 1)
 
-            sb = QDoubleSpinBox(self)
-            sb.setValue(
-                system.config["TIMETAGGER_CHANNEL_THRESHOLDS"][i]
-            )  # set to current default from config
-            sb.setMaximum(4.0)
-            sb.setMinimum(-4.0)
-            self.threshold_spinboxes.append(sb)
-            scroll.layout.addWidget(sb, i + 1, 2)
+            if not system.simulation:
+                sb = QDoubleSpinBox(self)
+                sb.setValue(
+                    system.config["TIMETAGGER_CHANNEL_THRESHOLDS"][i]
+                )  # set to current default from config
+                sb.setMaximum(4.0)
+                sb.setMinimum(-4.0)
+                self.threshold_spinboxes.append(sb)
+                scroll.layout.addWidget(sb, i + 1, 2)
 
         # set layout after adding scroll bar
         layout.addWidget(scroll)
@@ -631,16 +633,19 @@ class ControlPanelTimeTag(QFrame):
 
     def update_instrument(self):
         delays = [delay_spinbox.value() for delay_spinbox in self.delay_spinboxes]
-        thresholds = [
-            threshold_spinbox.value() for threshold_spinbox in self.threshold_spinboxes
-        ]
+        system.set_timetagger_delays(delays)
+        if not system.simulation:
+            thresholds = [
+                threshold_spinbox.value() for threshold_spinbox in self.threshold_spinboxes
+            ]
+            system.set_timetagger_thresholds(thresholds)
         meas_time = self.meas_time_sb.value()
         window = self.coinc_window_sb.value()
         ui_config["INTEGRATION_TIME_MS"] = meas_time
 
         system.set_timetagger_window(window)
-        system.set_timetagger_delays(delays)
-        system.set_timetagger_thresholds(thresholds)
+        
+        
         message = "Update time tagger | "
         #self.parent().parent().parent().parent().parent().update_message(message)
         print(message)
@@ -964,14 +969,18 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
         
         delay_a = system.config["TIMETAGGER_CHANNEL_DELAYS"][self.ch_a.value() - 1]
         delay_b = system.config["TIMETAGGER_CHANNEL_DELAYS"][self.ch_b.value() - 1]
-        net_delay = delay_b - delay_a
+        
+        # Calculate shifts
+        hardware_shift = delay_b - delay_a
+        real_hist_x = hist_x - hardware_shift
+        window_center = delay_a - delay_b
 
-        ax.axvspan(-window_ns + net_delay, window_ns + net_delay, color='green', alpha=0.2, label=f"Coinc. Window (±{window_ns}ns)")
-        ax.axvline(-window_ns + net_delay, color='green', linestyle='--', alpha=0.5)
-        ax.axvline(window_ns + net_delay, color='green', linestyle='--', alpha=0.5)
+        ax.axvspan(window_center - window_ns, window_center + window_ns, color='green', alpha=0.2, label=f"Coinc. Window (±{window_ns}ns)")
+        ax.axvline(window_center - window_ns, color='green', linestyle='--', alpha=0.5)
+        ax.axvline(window_center + window_ns, color='green', linestyle='--', alpha=0.5)
 
-        #ax.axvline(net_delay, color='red', linestyle='--')
-        ax.plot(hist_x, hist)
+        # ax.axvline(0, color='red', linestyle='--') # Optional: shows physical zero
+        ax.plot(real_hist_x, hist)
         ax.set(xlabel="Time (ns)", ylabel="Counts")
   
         # system.io.save_figure(fig=fig, filename=f"cross_correlation_ch{self.ch_a.value()}_ch{self.ch_b.value()}.png")

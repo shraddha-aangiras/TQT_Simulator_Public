@@ -276,35 +276,41 @@ class TimeTagger:
     def get_count_data(self, channels: list):
         """
         Returns (time, count, rate).
-        Applies the Overlap Function to simulate delay mismatch.
+        Applies the Overlap Function to signal, but adds constant Accidental Noise.
         """
         req_set = set(channels)
-        total_counts = 0
+        raw_counts = 0
         
-        # If we are looking at >1 channel, we check the delay mismatch
-        overlap_factor = 1.0
-        
-        if len(channels) == 2:
-            # User Formula: Exp[-(dA - dB)^2 / (2 * sigma^2)]
-            chA, chB = channels[0], channels[1]
-            
-            # Map channel 1-16 to index 0-15
-            dA = self.delays[chA - 1] if 1 <= chA <= 16 else 0
-            dB = self.delays[chB - 1] if 1 <= chB <= 16 else 0
-            
-            # Gaussian Overlap
-            sigma = JITTER_SIGMA_NS
-            delta = dA - dB
-            overlap_factor = np.exp(-(delta**2) / (2 * sigma**2))
-            
-            # If the mismatch is huge, count is effectively zero
-            if overlap_factor < 1e-5: overlap_factor = 0
-
         for pattern, count in self._simulation_memory.items():
             if req_set.issubset(pattern):
-                total_counts += count
+                raw_counts += count
 
-        total_counts = int(total_counts * overlap_factor)
+        if len(channels) == 2:
+            chA, chB = channels[0], channels[1]
+            
+            dA = self.delays[chA - 1] if 1 <= chA <= 16 else 0
+            dB = self.delays[chB - 1] if 1 <= chB <= 16 else 0
+            delta = dA - dB
+            overlap_factor = np.exp(-(delta**2) / (2 * JITTER_SIGMA_NS**2))
+            if overlap_factor < 1e-5: overlap_factor = 0
+
+            def get_single(ch):
+                c = 0
+                for pat, cnt in self._simulation_memory.items():
+                    if (ch,) == pat or ch in pat: c += cnt
+                return c
+            
+            NA = get_single(chA)
+            NB = get_single(chB)
+            
+            time_s = self._last_duration if self._last_duration > 0 else 1.0
+            window_s = self.window_width * 1e-9
+            accidental_counts = (NA * NB * window_s) / time_s
+            final_counts = (raw_counts * overlap_factor) + accidental_counts
+            total_counts = int(final_counts)
+            
+        else:
+            total_counts = raw_counts
 
         rate = total_counts / self._last_duration if self._last_duration > 0 else 0
         return self._last_duration, total_counts, rate
