@@ -857,7 +857,7 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
         self.ch_b = QSpinBox()
         self.ch_b.setPrefix("Channel B: ")
         self.ch_b.setValue(2)
-        self.ch_b.setMinimum(1)
+        self.ch_b.setMinimum(2)
         self.ch_b.setMaximum(16)
         layout.addWidget(self.ch_b)
 
@@ -897,9 +897,22 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
             hist_width=self.hist_width.value(),
         )
 
+        window_ns = system.config["COINCIDENCE_WINDOW_NS"]
+
         fig, ax = plt.subplots(1, 1)
+        
+        delay_a = system.config["TIMETAGGER_CHANNEL_DELAYS"][self.ch_a.value() - 1]
+        delay_b = system.config["TIMETAGGER_CHANNEL_DELAYS"][self.ch_b.value() - 1]
+        net_delay = delay_b - delay_a
+
+        ax.axvspan(-window_ns + net_delay, window_ns + net_delay, color='green', alpha=0.2, label=f"Coinc. Window (±{window_ns}ns)")
+        ax.axvline(-window_ns + net_delay, color='green', linestyle='--', alpha=0.5)
+        ax.axvline(window_ns + net_delay, color='green', linestyle='--', alpha=0.5)
+
+        #ax.axvline(net_delay, color='red', linestyle='--')
         ax.plot(hist_x, hist)
         ax.set(xlabel="Time (ns)", ylabel="Counts")
+  
         # system.io.save_figure(fig=fig, filename=f"cross_correlation_ch{self.ch_a.value()}_ch{self.ch_b.value()}.png")
         plt.show()
 
