@@ -452,7 +452,7 @@ class TimeTagger:
         
         Pump_State = complex_array([[1], [0]]) 
 
-        offset = np.radians(-45)
+        offset = 0 #np.radians(-45)
         effective_angle = hwp_angle + offset
 
         # Rotate the Pump Laser
@@ -466,7 +466,7 @@ class TimeTagger:
         # |10> = Alice V, Bob H
         State_VH = np.kron(vec1, vec0)
         
-        self.entangled_state = (alpha * State_HV) + (beta * State_VH)
+        self.entangled_state = (alpha * State_HV) - (beta * State_VH)
          
         # Normalize
         norm = np.linalg.norm(self.entangled_state)

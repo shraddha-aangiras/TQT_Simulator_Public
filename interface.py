@@ -733,31 +733,45 @@ class ControlPanelPolarization(QFrame):
                 title.setAlignment(QtCore.Qt.AlignCenter)
                 party_layout.addWidget(title)
 
-                # Buttons row
-                presets_main_layout = QVBoxLayout()
-                
-                # Row 1: Standard Bases
-                row1_layout = QHBoxLayout()
-                buttons_row1 = [("Z", "Z"), ("X", "X"), ("Y", "Y")]
+                presets_grid = QGridLayout()
+                presets_grid.setSpacing(5) 
 
-                for label, basis_key in buttons_row1:
+                headers = ["Z Basis", "X Basis", "Y Basis", "Mixed"]
+                for col, text in enumerate(headers):
+                    lbl = QLabel(text)
+                    lbl.setAlignment(QtCore.Qt.AlignCenter)
+                    lbl.setStyleSheet("color: gray; font-size: 10pt;")
+                    presets_grid.addWidget(lbl, 0, col)
+
+                # (Col, Row, Label, Key)
+                buttons_data = [
+                    # Z Column 
+                    (0, 1, "Z+",  "Z+"),
+                    (0, 2, "Z-",  "Z-"),
+
+                    # X Column
+                    (1, 1, "X+",  "X+"),
+                    (1, 2, "X-",  "X-"),
+
+                    # Y Column
+                    (2, 1, "Y+",  "Y+"),
+                    (2, 2, "Y-",  "Y-"),
+
+                    # Mixed Column 
+                    (3, 1, "(-Z-X)/√2",    "-Z-X"),
+                    (3, 2, "(-Z+X)/√2",    "-Z+X"),
+                ]
+
+                # Create and Place Buttons
+                for col, row, label, key in buttons_data:
                     btn = QPushButton(label)
-                    btn.clicked.connect(lambda checked, p=party.name, b=basis_key: self.set_preset_basis(p, b))
-                    row1_layout.addWidget(btn)
-                
-                # Row 2: Diagonal Bases
-                row2_layout = QHBoxLayout()
-                buttons_row2 = [("(-Z-X)/√2", "-Z-X"), ("(-Z+X)/√2", "-Z+X")]
+                    btn.setToolTip(f"Set {party.name} to {label}")
+                    btn.setMaximumWidth(62)
+                    btn.clicked.connect(lambda checked, p=party.name, k=key: self.set_preset_basis(p, k))
+                    
+                    presets_grid.addWidget(btn, row, col)
 
-                for label, basis_key in buttons_row2:
-                    btn = QPushButton(label)
-                    btn.clicked.connect(lambda checked, p=party.name, b=basis_key: self.set_preset_basis(p, b))
-                    row2_layout.addWidget(btn)
-
-                presets_main_layout.addLayout(row1_layout)
-                presets_main_layout.addLayout(row2_layout)
-                
-                party_layout.addLayout(presets_main_layout)
+                party_layout.addLayout(presets_grid)
 
                 # HWP Slider
                 party_layout.addWidget(QLabel("HWP:"))
@@ -776,7 +790,11 @@ class ControlPanelPolarization(QFrame):
                 party_layout.addWidget(qwp_slider)
 
                 # Save references
-                self.controls[party.name] = {'hwp': hwp_slider, 'qwp': qwp_slider}
+                self.controls[party.name] = {
+                    'hwp': hwp_slider, 
+                    'qwp': qwp_slider, 
+                    'qwp_check': qwp_check 
+                }
                 
                 party_group.setLayout(party_layout)
                 parties_layout.addWidget(party_group, 1)
@@ -791,17 +809,36 @@ class ControlPanelPolarization(QFrame):
     def set_preset_basis(self, party_name, basis):
         if party_name not in self.controls: return
 
-        presets = {
+        """presets = {
             "Z":   (0.0,  0.0), 
             "X":   (22.5, 45.0),   
             "Y":   (22.5, 0),  
             "-Z-X": (56.25, 112.5),  
             "-Z+X": (33.75, 67.5)   
+        }"""
+
+        presets = {
+            "Z+": (0.0, 0.0), 
+            "Z-": (45.0, 0.0), 
+
+            "X+": (22.5, 45.0), 
+            "X-": (67.5, 45.0), 
+
+            "Y+": (22.5, 0.0),
+            "Y-": (67.5, 0.0),
+
+            "-Z-X": (56.25, 112.5), 
+            "-Z+X": (33.75, 67.5)
         }
 
         if basis in presets:
             h, q = presets[basis]
             
+            if 'qwp_check' in self.controls[party_name]:
+                checkbox = self.controls[party_name]['qwp_check']
+                if not checkbox.isChecked():
+                    checkbox.setChecked(True)
+
             self.controls[party_name]['hwp'].setValue(h)
             self.controls[party_name]['qwp'].setValue(q)
             
@@ -1119,10 +1156,12 @@ class FullEquipmentControlTab(QWidget):
         top_row_layout = QHBoxLayout()
         # Col 1 Laser
         self.laser_control_panel = ControlPanelLaser(self)
+        self.laser_control_panel.setMaximumHeight(270)
         top_row_layout.addWidget(self.laser_control_panel)
 
         # Col 2 Time Tagger
         self.timetag_control_panel = ControlPanelTimeTag(self)
+        self.timetag_control_panel.setMaximumHeight(270)
         top_row_layout.addWidget(self.timetag_control_panel)
 
         # Add to layout
