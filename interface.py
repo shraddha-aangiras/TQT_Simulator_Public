@@ -631,6 +631,7 @@ class ControlPanelTimeTag(QFrame):
         # set layout after adding scroll bar
         layout.addWidget(scroll)
         self.setLayout(layout)
+        self.update_instrument()
 
     def update_instrument(self):
         delays = [delay_spinbox.value() for delay_spinbox in self.delay_spinboxes]
@@ -946,6 +947,7 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
 
         # layout.addStretch()
         self.setLayout(layout)
+        #self.update_instrument()
 
     def run_measurement(self):
         system.timetagger.switch_logic()
