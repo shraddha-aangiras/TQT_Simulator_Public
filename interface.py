@@ -176,10 +176,11 @@ class RealTimeDataDock(QWidget):
         self.tab1 = PhotonStatisticsMonitor(self)
         self.tabs.addTab(self.tab1, "Photon Statistics")
 
-        self.tab2 = PlotOpticalPower(
-            self, powermeter=system.powermeter, ui_config=ui_config
-        )
-        self.tabs.addTab(self.tab2, "Power Meter")
+        if not system.simulation:
+            self.tab2 = PlotOpticalPower(
+                self, powermeter=system.powermeter, ui_config=ui_config
+            )
+            self.tabs.addTab(self.tab2, "Power Meter")
 
         self.tab3 = CountView(self)
         self.tabs.addTab(self.tab3, "Counts View")
