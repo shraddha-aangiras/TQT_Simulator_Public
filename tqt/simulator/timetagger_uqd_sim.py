@@ -42,6 +42,8 @@ class QuantumParty:
         self.hwp_angle = 0.0
         self.qwp_angle = 0.0
 
+        self.has_qwp = True
+
         self.pbs_ops = [Proj(vec0), Proj(vec1)]
         self.ops = [] 
         self.update_operators()
@@ -56,8 +58,13 @@ class QuantumParty:
         """
         Calculate effective operators: E = W_dag * P_pbs * W
         """
-        W = HWP(self.hwp_angle) @ QWP(self.qwp_angle)
+        W = HWP(self.hwp_angle) @ QWP(self.qwp_angle) if self.has_qwp else HWP(self.hwp_angle)
         self.ops = [CT(W) @ op @ W for op in self.pbs_ops]
+
+    def qwp_toggle(self):
+        self.has_qwp = not self.has_qwp
+        print("Toggled:", self.has_qwp)
+        self.update_operators()
 
 class TimeTagger:
     _num_channels = 16

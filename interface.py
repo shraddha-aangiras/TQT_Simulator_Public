@@ -752,8 +752,12 @@ class ControlPanelPolarization(QFrame):
 
                 # QWP Slider
                 party_layout.addWidget(QLabel("QWP:"))
+                qwp_check = QCheckBox("Use QWP?")
+                qwp_check.setChecked(True)
+                qwp_check.toggled.connect(party.qwp_toggle)
                 qwp_slider = SliderWithEdit(self, min=0, max=180, step=1, unit="°")
                 qwp_slider.setValue(np.degrees(party.qwp_angle))
+                party_layout.addWidget(qwp_check)
                 party_layout.addWidget(qwp_slider)
 
                 # Save references

@@ -73,9 +73,7 @@ class QuantumOpticalExperiment:
             print(f"[Mode: REAL] Loading real {class_name}...")
         return self._import_driver("control", module_base, class_name, *args, **kwargs)
         
-        #
-        #  This is not catching the right error. Need to test what error is raised when the real driver fails to load.
-        # 
+        # This is not catching the right error. Need to test what error is raised when the real driver fails to load.
         """except(ImportError, RuntimeError, OSError) as e:
             print(f"Hardware Error ({class_name}): {e}")
             print(f"   -> Falling back to virtual driver.")
