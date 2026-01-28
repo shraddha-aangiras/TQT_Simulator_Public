@@ -683,9 +683,24 @@ class ControlPanelPolarization(QFrame):
         source_group.setFrameShape(QFrame.StyledPanel)
         source_layout = QVBoxLayout()
         
-        source_label = QLabel("<b>Source Generation</b>")
+        source_label = QLabel("<b>Source</b>")
         source_label.setAlignment(QtCore.Qt.AlignCenter)
         source_layout.addWidget(source_label)
+
+        # Source Preset Buttons
+        presets_layout = QHBoxLayout()
+        source_presets = [
+            ("|01>", 0), 
+            ("|Ψ->", 22.5), 
+            ("|10>", 45), 
+            ("|Ψ+>", 67.5)
+        ]
+        for label, angle in source_presets:
+            btn = QPushButton(label)
+            btn.clicked.connect(lambda checked, a=angle: self.set_source_preset(a))
+            presets_layout.addWidget(btn)
+
+        source_layout.addLayout(presets_layout)
 
         # Source HWP Slider
         source_row = QHBoxLayout()
@@ -792,6 +807,11 @@ class ControlPanelPolarization(QFrame):
             
             self.update_instrument()
             print(f"Set {party_name} to {basis} (HWP={h}, QWP={q})")
+
+    def set_source_preset(self, angle):
+        self.source_hwp_slider.setValue(angle)
+        self.update_instrument()
+        print(f"Source set to preset: {angle}°")
 
     def update_instrument(self):
         message = "Update Polarization | "
