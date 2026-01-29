@@ -131,8 +131,8 @@ class TabManager(QWidget):
         super(QWidget, self).__init__(parent)
         layout = QVBoxLayout(self)
 
-        self.file_input_output_panel = FileInputOuputPanel(self)
-        layout.addWidget(self.file_input_output_panel)
+        #self.file_input_output_panel = FileInputOuputPanel(self)
+        #layout.addWidget(self.file_input_output_panel)
 
         # Initialize tab screen
         self.tabs = QTabWidget()
