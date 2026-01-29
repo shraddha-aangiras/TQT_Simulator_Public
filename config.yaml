@@ -9,13 +9,13 @@ POWERMETER_PORT: USB0::0x1313::0x8078::P0038689::INSTR
 
 # Time tagger settings
 
-COINCIDENCE_WINDOW_NS: 1.0  # in ns
+COINCIDENCE_WINDOW_NS: 2.0  # in ns
 
 TIMETAGGER_CHANNEL_DELAYS:
-- 10.0
-- 3.0
-- 10.0
-- 3.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
 - 0.0
 - 0.0
 - 0.0

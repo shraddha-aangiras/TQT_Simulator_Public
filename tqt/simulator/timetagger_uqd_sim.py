@@ -71,6 +71,8 @@ class TimeTagger:
 
     def __init__(self):
         print("[SIM] Virtual Time Tagger initialized (Poissonian Statistics)")
+        self.source_type = 0 # 0: Sagnac, 1: |01> + i|10>, 2: |01><01| + |10><10|, 3: |+->
+        self.stored_source_hwp_angle = 0.0
         self.logic_mode = True
         self.window_width = 3.0
         self.delays = [0.0] * self._num_channels
@@ -445,46 +447,78 @@ class TimeTagger:
             print(f"[SIM] Party '{party_name}' not found.")
 
     def set_source_hwp(self, hwp_angle):
+        self.stored_source_hwp_angle = hwp_angle
+        if self.source_type == 0:
+            self.recalc_density_matrix()
+    
+    def set_source_type(self, type_idx):
+        self.source_type = int(type_idx)
+        self.recalc_density_matrix()
+
+    def recalc_density_matrix(self):
         """
-        Updates the source to simulate a Type-II SPDC Source.
-        
-        Physics: 
-        Pump |H> -> Generates Pair |HV> (|01>)
-        Pump |V> -> Generates Pair |VH> (|10>)
-        
-        To get the Singlet State (|HV> - |VH>):
-        The Pump must be Anti-Diagonal (|H> - |V>), achieved by HWP @ -22.5 deg.
+        Master function to update self.rho based on the current source type.
         """
-        
-        Pump_State = complex_array([[1], [0]]) 
 
-        offset = 0 #np.radians(-45)
-        effective_angle = hwp_angle + offset
+        if self.source_type == 0:
+            """
+            Updates the source to simulate a Type-II SPDC Source.
+            
+            Physics: 
+            Pump |H> -> Generates Pair |HV> (|01>)
+            Pump |V> -> Generates Pair |VH> (|10>)
+            
+            To get the Singlet State (|HV> - |VH>):
+            The Pump must be Anti-Diagonal (|H> - |V>), achieved by HWP @ -22.5 deg.
+            """
+            hwp_angle = self.stored_source_hwp_angle 
+            
+            Pump_State = complex_array([[1], [0]]) 
+            offset = 0 #np.radians(-45)
+            effective_angle = hwp_angle + offset
 
-        # Rotate the Pump Laser
-        Rotated_Pump = HWP(effective_angle) @ Pump_State
-        
-        alpha = Rotated_Pump[0, 0] # Amplitude of Horizontal Pump
-        beta  = Rotated_Pump[1, 0] # Amplitude of Vertical Pump
-        
-        # |01> = Alice H, Bob V
-        State_HV = np.kron(vec0, vec1)
-        # |10> = Alice V, Bob H
-        State_VH = np.kron(vec1, vec0)
-        
-        self.entangled_state = (alpha * State_HV) - (beta * State_VH)
-         
-        # Normalize
-        norm = np.linalg.norm(self.entangled_state)
-        if norm > 0:
-            self.entangled_state = self.entangled_state / norm
+            # Rotate the Pump Laser
+            Rotated_Pump = HWP(effective_angle) @ Pump_State
+            
+            alpha = Rotated_Pump[0, 0] # Amplitude of Horizontal Pump
+            beta  = Rotated_Pump[1, 0] # Amplitude of Vertical Pump
+            
+            # |01> = Alice H, Bob V
+            State_HV = np.kron(vec0, vec1)
+            # |10> = Alice V, Bob H
+            State_VH = np.kron(vec1, vec0)
+            
+            self.entangled_state = (alpha * State_HV) - (beta * State_VH)
+            
+            # Normalize
+            norm = np.linalg.norm(self.entangled_state)
+            if norm > 0:
+                self.entangled_state = self.entangled_state / norm
 
-        epsilon = 0.03915 
-        gamma = 0.06
-        Id4 = np.eye(4, dtype=complex) / 4.0
-        noise_state1 = Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
+            epsilon = 0.03915 
+            gamma = 0.06
+            Id4 = np.eye(4, dtype=complex) / 4.0
+            noise_state1 = Proj((np.kron(vec0, vec1) + np.kron(vec1, vec0))/ 2)
 
-        self.rho = (1 - epsilon - gamma )*Proj(self.entangled_state) + epsilon * Id4 + gamma * noise_state1
+            self.rho = (1 - epsilon - gamma )*Proj(self.entangled_state) + epsilon * Id4 + gamma * noise_state1
+            print(f"[SIM] Source updated to Sagnac (HWP={np.degrees(hwp_angle):.1f}°)")
+
+        elif self.source_type == 1:
+            print("[SIM] Source updated to Mystery A")
+            psi = (np.kron(vec0, vec1) + 1j * np.kron(vec1, vec0)) / np.sqrt(2)
+            self.rho = Proj(psi) 
+
+        elif self.source_type == 2:
+            print("[SIM] Source updated to Mystery B")
+            rho_mixed = 0.5*(Proj(np.kron(vec0, vec1)) + Proj(np.kron(vec1, vec0)))
+            self.rho = rho_mixed
+
+        elif self.source_type == 3:
+            print("[SIM] Source updated to Mystery C")
+            plus = (vec0 + vec1) / np.sqrt(2)
+            minus = (vec0 - vec1) / np.sqrt(2)
+            psi = np.kron(plus, minus)
+            self.rho = Proj(psi)
 
     def set_ambient_light(self, lights_on=False):
         """

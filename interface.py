@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
 )
 from PyQt5.QtWidgets import QLineEdit, QLabel, QDoubleSpinBox, QSpinBox, QCheckBox, QRadioButton, QAction, QButtonGroup, QSizePolicy
-from PyQt5.QtWidgets import QPushButton, QFrame, QDockWidget, QScrollArea
+from PyQt5.QtWidgets import QPushButton, QFrame, QDockWidget, QScrollArea, QComboBox
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QFont
 
@@ -685,16 +685,29 @@ class ControlPanelPolarization(QFrame):
         layout = QVBoxLayout(container)
         layout.setSpacing(10)
 
-        # --- SECTION 1: SOURCE CONTROL (New Row) ---
         source_group = QFrame()
         source_group.setFrameShape(QFrame.StyledPanel)
         source_layout = QVBoxLayout()
-        
-        source_label = QLabel("<b>Source</b>")
-        source_label.setAlignment(QtCore.Qt.AlignCenter)
-        source_layout.addWidget(source_label)
 
-        # Source Preset Buttons
+        source_select_layout = QHBoxLayout()
+        source_select_layout.addWidget(QLabel("<b>Source Type:</b>"))
+        
+        self.source_combo = QComboBox()
+        self.source_combo.addItems([
+            "0: Sagnac (Tunable)", 
+            "1: Mystery Source A", 
+            "2: Mystery Source B", 
+            "3: Mystery Source C"
+        ])
+        self.source_combo.currentIndexChanged.connect(self.change_source_type)
+        source_select_layout.addWidget(self.source_combo, 1)
+        source_layout.addLayout(source_select_layout)
+
+        self.source_controls_widget = QWidget()
+        source_controls_layout = QVBoxLayout(self.source_controls_widget)
+        source_controls_layout.setContentsMargins(0, 5, 0, 0)
+
+        
         presets_layout = QHBoxLayout()
         source_presets = [
             ("|01>", 0), 
@@ -707,7 +720,7 @@ class ControlPanelPolarization(QFrame):
             btn.clicked.connect(lambda checked, a=angle: self.set_source_preset(a))
             presets_layout.addWidget(btn)
 
-        source_layout.addLayout(presets_layout)
+        source_controls_layout.addLayout(presets_layout)
 
         # Source HWP Slider
         source_row = QHBoxLayout()
@@ -717,9 +730,11 @@ class ControlPanelPolarization(QFrame):
         self.source_hwp_slider.setValue(0) 
         source_row.addWidget(self.source_hwp_slider, 1) 
         
-        source_layout.addLayout(source_row)
-        source_group.setLayout(source_layout)
+        source_controls_layout.addLayout(source_row)
         
+        source_layout.addWidget(self.source_controls_widget) 
+
+        source_group.setLayout(source_layout)
         layout.addWidget(source_group)
 
         # --- SECTION 2: DETECTION CONTROL (Alice/Bob) ---
@@ -743,7 +758,7 @@ class ControlPanelPolarization(QFrame):
                 presets_grid = QGridLayout()
                 presets_grid.setSpacing(5) 
 
-                headers = ["Z Basis", "X Basis", "Y Basis", "Mixed"]
+                headers = ["Z Basis", "X Basis", "Y Basis", "CHSH"]
                 for col, text in enumerate(headers):
                     lbl = QLabel(text)
                     lbl.setAlignment(QtCore.Qt.AlignCenter)
@@ -878,6 +893,21 @@ class ControlPanelPolarization(QFrame):
             message += f"[{name} H:{hwp_deg:.0f} Q:{qwp_deg:.0f}] "
 
         print(message)
+    
+    def change_source_type(self, index):
+        """
+        Handles switching between Sagnac and Mystery sources.
+        """
+        if hasattr(system.timetagger, 'set_source_type'):
+            system.timetagger.set_source_type(index)
+
+        is_sagnac = (index == 0)
+
+        if hasattr(self, 'source_controls_widget'):
+            self.source_controls_widget.setVisible(is_sagnac)
+
+        self.update_instrument()
+        print(f"UI: Source switched to Type {index}")
 
 
 class RunMeasurementsTab(QWidget):
@@ -1184,6 +1214,7 @@ class FullEquipmentControlTab(QWidget):
             main_layout.addWidget(self.pol_control_panel)
         
         self.setLayout(main_layout)
+    
 
 
 if __name__ == "__main__":
