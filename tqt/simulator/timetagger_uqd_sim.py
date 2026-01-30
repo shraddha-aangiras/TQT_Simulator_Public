@@ -307,7 +307,7 @@ class TimeTagger:
             
             time_s = self._last_duration if self._last_duration > 0 else 1.0
             window_s = self.window_width * 1e-9
-            accidental_counts = int((float(NA) * float(NB) * window_s) / time_s)
+            accidental_counts = np.random.poisson(int((float(NA) * float(NB) * window_s) / time_s))
             final_counts = (raw_counts * overlap_factor) + accidental_counts
             total_counts = int(final_counts)
             
