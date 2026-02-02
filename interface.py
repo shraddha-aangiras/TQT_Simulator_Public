@@ -94,12 +94,24 @@ class LabInterfaceApp(QMainWindow):
         self.realtime_data.setFloating(False)
         self.addDockWidget(Qt.Qt.RightDockWidgetArea, self.realtime_data)
 
+        QTimer.singleShot(0, self.set_initial_dock_width)
+
         self.tab_widget = TabManager(self)
         self.setCentralWidget(self.tab_widget)
+
+        #self.resize(1366, 768) 
+        #self.resize(1920, 1080)
+        #self.resize(3840, 2160)
 
         self.setLayout(layout)
 
         self.showMaximized()
+
+    def set_initial_dock_width(self):
+        """Sets the initial width of the side dock panel."""
+        desired_width = 450 
+        self.resizeDocks([self.realtime_data], [desired_width], QtCore.Qt.Horizontal)
+
 
     def toggle_theme(self):
         app = QApplication.instance()
@@ -661,8 +673,9 @@ class ControlPanelPolarization(QFrame):
         super(QWidget, self).__init__(parent)
         self.setFrameShape(QFrame.StyledPanel)
 
-        self.setFixedWidth(650)
+        #self.setFixedWidth(650)
 
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -677,8 +690,8 @@ class ControlPanelPolarization(QFrame):
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded) 
         scroll.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         scroll.setFrameShape(QFrame.NoFrame)
 
         container = QWidget()
@@ -1211,14 +1224,20 @@ class FullEquipmentControlTab(QWidget):
 
         if system.simulation and hasattr(system.timetagger, 'parties'):
             self.pol_control_panel = ControlPanelPolarization(self)
-            main_layout.addWidget(self.pol_control_panel)
+            main_layout.addWidget(self.pol_control_panel, 1)
         
         self.setLayout(main_layout)
     
 
 
 if __name__ == "__main__":
+    
     from tqt.widgets import palette
+
+    if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+        QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+        QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
 
