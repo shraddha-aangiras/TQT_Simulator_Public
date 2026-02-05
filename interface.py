@@ -984,7 +984,7 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
         self.hist_width = QDoubleSpinBox()
         self.hist_width.setPrefix("Hist. Width: ")
         self.hist_width.setSuffix(" ns")
-        self.hist_width.setValue(50)
+        self.hist_width.setValue(30)
         self.hist_width.setMinimum(0.1)
         layout.addWidget(self.hist_width)
 
@@ -1021,9 +1021,10 @@ class RunMeasurementCrossCorrelationHistogram(QFrame):
         real_hist_x = hist_x - hardware_shift
         window_center = delay_a - delay_b
 
-        ax.axvspan(window_center - window_ns, window_center + window_ns, color='green', alpha=0.2, label=f"Coinc. Window (±{window_ns}ns)")
-        ax.axvline(window_center - window_ns, color='green', linestyle='--', alpha=0.5)
-        ax.axvline(window_center + window_ns, color='green', linestyle='--', alpha=0.5)
+        radius_ns = window_ns / 2
+        ax.axvspan(window_center - radius_ns, window_center + radius_ns, color='green', alpha=0.2, label=f"Coinc. Window (±{radius_ns}ns)")
+        ax.axvline(window_center - radius_ns, color='green', linestyle='--', alpha=0.5)
+        ax.axvline(window_center + radius_ns, color='green', linestyle='--', alpha=0.5)
 
         # ax.axvline(0, color='red', linestyle='--') # Optional: shows physical zero
         ax.plot(real_hist_x, hist)

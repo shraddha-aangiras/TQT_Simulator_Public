@@ -5,9 +5,10 @@ import numpy as np
 from itertools import product
 from collections import Counter
 import itertools
+from scipy.special import erf
 
 BIN_RESOLUTION_NS = 0.15625
-JITTER_SIGMA_NS = 1.0
+j_sigma = 1.0
 
 def complex_array(arr):
     return np.array(arr, dtype=complex)
@@ -293,8 +294,20 @@ class TimeTagger:
             dA = self.delays[chA - 1] if 1 <= chA <= 16 else 0
             dB = self.delays[chB - 1] if 1 <= chB <= 16 else 0
             delta = dA - dB
-            overlap_factor = np.exp(-(delta**2) / (2 * JITTER_SIGMA_NS**2))
-            if overlap_factor < 1e-5: overlap_factor = 0
+            # overlap_factor = np.exp(-(delta**2) / (2 * j_sigma**2))
+            # if overlap_factor < 1e-5: overlap_factor = 0
+
+            # Changed it to use erf to calculate. Coinc window was not being factored in
+            delta = dA - dB
+
+            window_ns = self.window_width
+            sigma = j_sigma
+
+            upper_bound = (window_ns / 2.0 - delta) / (sigma * np.sqrt(2))
+            lower_bound = (-window_ns / 2.0 - delta) / (sigma * np.sqrt(2))
+
+            overlap_factor = 0.5 * (erf(upper_bound) - erf(lower_bound))
+            # -----
 
             def get_single(ch):
                 c = 0
@@ -407,7 +420,7 @@ class TimeTagger:
             
             for ch in active_channels:
                 delay = self.delays[ch-1] if 1<=ch<=16 else 0
-                jitter = np.random.normal(0, JITTER_SIGMA_NS, count)
+                jitter = np.random.normal(0, j_sigma, count)
         
                 times_ns = (these_times * 1e9) + delay + jitter
                 bins = (times_ns / BIN_RESOLUTION_NS).astype(np.int64)
